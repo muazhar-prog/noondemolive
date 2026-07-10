@@ -74,12 +74,31 @@ if len(valid) > 0:
     col2.metric("Average attendance %", f"{valid.mean():.1f}%")
     col3.metric("Lowest attendance %", f"{valid.min():.1f}%")
 
-st.subheader("Attendance % chart")
+st.subheader("Attendance % chart (per rider)")
 if len(valid) > 0:
     chart_data = result.dropna(subset=["Attendance %"]).set_index(detail_columns[0])["Attendance %"]
     st.bar_chart(chart_data)
 else:
     st.info("No riders had both Present and Absent days recorded, so no chart to show.")
+
+# --- Attendance buckets (10% bins) ---
+st.subheader("Riders by attendance bucket (10% bins)")
+
+if len(valid) > 0:
+    bins = list(range(0, 101, 10))  # 0,10,20,...,100
+    labels = [f"{bins[i]}-{bins[i+1]}%" for i in range(len(bins) - 1)]
+
+    # include_lowest=True so a rider at exactly 0% falls into the first bucket
+    bucket = pd.cut(valid, bins=bins, labels=labels, include_lowest=True)
+
+    bucket_counts = bucket.value_counts().reindex(labels, fill_value=0)
+
+    st.bar_chart(bucket_counts)
+
+    with st.expander("See bucket counts as a table"):
+        st.dataframe(bucket_counts.rename("Number of riders"), use_container_width=True)
+else:
+    st.info("No valid attendance percentages to bucket yet.")
 
 # Download button
 csv = result.to_csv(index=False).encode("utf-8")
